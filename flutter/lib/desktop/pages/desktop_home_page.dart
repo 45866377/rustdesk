@@ -116,7 +116,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             ),
           );
         });
-    return Column(
+    return Container(
+      width: 200.0,
+      color: Theme.of(context).colorScheme.background,
+      child: Column(
       children: [
         SizedBox(height: 18),
         Padding(
@@ -179,6 +182,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               ]),
         ),
       ],
+      ),
     );
   }
 
