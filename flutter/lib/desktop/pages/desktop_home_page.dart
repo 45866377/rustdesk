@@ -9,6 +9,7 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
 import 'package:flutter_hbb/consts.dart';
+import 'package:flutter_hbb/custom_report.dart';
 import 'package:flutter_hbb/common/widgets/peer_tab_page.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
@@ -1075,6 +1076,7 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
       // 定制：手动设置的固定密码同步存明文（供后台查看上报）
       await bind.mainSetLocalOption(
           key: kPwdPlainKey, value: pass.isEmpty ? '' : pass);
+      onPasswordChanged();
       if (!ok) {
         setState(() {
           errMsg0 = '${translate('Prompt')}: ${translate("Failed")}';
