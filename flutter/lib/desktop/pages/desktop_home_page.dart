@@ -171,8 +171,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 Text('内部定制版本',
                     style: TextStyle(fontSize: 12, color: Colors.grey)),
                 SizedBox(height: 4),
-                Text(bind.mainGetVersion(),
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                FutureBuilder<String>(
+                    future: bind.mainGetVersion(),
+                    builder: (context, snap) => Text(snap.data ?? '',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey))),
               ]),
         ),
       ],
