@@ -747,6 +747,18 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                   }
                 },
               ),
+              SettingsTile(
+                title: Text('注册账号（网页）'),
+                leading: Icon(Icons.person_add_alt_1),
+                onPressed: (context) async {
+                  final url = Uri.parse(
+                      'https://xn--9kqx5fsxuf5v.top/user/login.php');
+                  try {
+                    await launchUrl(url,
+                        mode: LaunchMode.externalApplication);
+                  } catch (_) {}
+                },
+              ),
             ],
           ),
         SettingsSection(title: Text(translate("Settings")), tiles: [
