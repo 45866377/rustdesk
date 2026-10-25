@@ -579,7 +579,7 @@ class MyTheme {
   static ThemeMode getThemeModePreference() {
     final v = bind.mainGetLocalOption(key: kCommConfKeyTheme);
     if (v.isEmpty) {
-      return ThemeMode.dark;
+      return ThemeMode.light;
     }
     return themeModeFromString(v);
   }
