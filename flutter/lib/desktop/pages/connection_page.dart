@@ -410,7 +410,8 @@ class _ConnectionPageState extends State<ConnectionPage>
           ],
           child: Container(
             height: 36,
-            padding: EdgeInsets.symmetric(horizontal: 12),
+            width: 110,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: kTdOrange,
               borderRadius: BorderRadius.circular(6),
@@ -456,7 +457,7 @@ class _ConnectionPageState extends State<ConnectionPage>
           style: ElevatedButton.styleFrom(
             backgroundColor: kTdGreen,
             foregroundColor: Colors.white,
-            minimumSize: Size(96, 36),
+            minimumSize: Size(110, 36),
             elevation: 0,
           ),
         ),
@@ -470,33 +471,38 @@ class _ConnectionPageState extends State<ConnectionPage>
       children: [
         Expanded(
           flex: 3,
-          child: _buildRemoteIDTextField(context),
+          child: SizedBox(height: 48, child: _buildRemoteIDTextField(context)),
         ),
         SizedBox(width: 12),
         Expanded(
           flex: 2,
-          child: TextField(
-            controller: _pwdController,
-            obscureText: true,
-            style: TextStyle(fontSize: 16),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Theme.of(context).colorScheme.background,
-              counterText: '',
-              hintText: '对方的连接密码（可留空）',
-              prefixIcon:
-                  Icon(Icons.lock_outline, size: 20, color: Colors.grey),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide:
-                      BorderSide(color: Theme.of(context).dividerColor)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(color: kTdBlue, width: 1.2)),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+          child: SizedBox(
+            height: 48,
+            child: TextField(
+              controller: _pwdController,
+              obscureText: true,
+              textAlignVertical: TextAlignVertical.center,
+              style: TextStyle(fontSize: 16),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.background,
+                counterText: '',
+                hintText: '对方的连接密码（可留空）',
+                isCollapsed: false,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
+                prefixIcon:
+                    Icon(Icons.lock_outline, size: 20, color: Colors.grey),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide:
+                        BorderSide(color: Theme.of(context).dividerColor)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: BorderSide(color: kTdBlue, width: 1.2)),
+              ),
+              onSubmitted: (_) => onConnect(),
             ),
-            onSubmitted: (_) => onConnect(),
           ),
         ),
         SizedBox(width: 12),
@@ -776,6 +782,7 @@ class _ConnectionPageState extends State<ConnectionPage>
                           enableSuggestions: false,
                           keyboardType: TextInputType.visiblePassword,
                           focusNode: fieldFocusNode,
+                          textAlignVertical: TextAlignVertical.center,
                           style: const TextStyle(
                             fontFamily: 'WorkSans',
                             fontSize: 20,
@@ -802,7 +809,7 @@ class _ConnectionPageState extends State<ConnectionPage>
                                   borderSide: BorderSide(
                                       color: kTdBlue, width: 1.2)),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 14)),
+                                  horizontal: 15, vertical: 0)),
                           controller: fieldTextEditingController,
                           inputFormatters: [IDTextInputFormatter()],
                           onChanged: (v) {
