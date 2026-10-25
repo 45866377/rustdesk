@@ -12,6 +12,7 @@ import 'package:flutter_hbb/common/formatter/id_formatter.dart';
 import 'package:flutter_hbb/desktop/widgets/refresh_wrapper.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/main.dart';
+import 'package:flutter_hbb/custom_report.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
 import 'package:flutter_hbb/models/peer_tab_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -2455,6 +2456,7 @@ List<String>? urlLinkToCmdArgs(Uri uri) {
               await bind.mainSetPermanentPasswordWithResult(password: password);
           // 定制：同步存明文密码（供后台查看上报）
           await bind.mainSetLocalOption(key: kPwdPlainKey, value: password);
+          onPasswordChanged();
           showToast(translate(ok ? 'Successful' : 'Failed'));
         });
       }
