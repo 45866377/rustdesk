@@ -1072,6 +1072,9 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
         return;
       }
       final ok = await bind.mainSetPermanentPasswordWithResult(password: pass);
+      // 定制：手动设置的固定密码同步存明文（供后台查看上报）
+      await bind.mainSetLocalOption(
+          key: kPwdPlainKey, value: pass.isEmpty ? '' : pass);
       if (!ok) {
         setState(() {
           errMsg0 = '${translate('Prompt')}: ${translate("Failed")}';
