@@ -57,6 +57,9 @@ env:
   PUBLISH_UPDATE_METADATA: "${{ inputs.publish-update-metadata }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
 
+env:/n  RS_PUB_KEY: "pjZYrutPudPs99ehq33IjmVPRGSxjWPmq1K3xp90lUQ="
+  RENDEZVOUS_SERVER: "8.155.163.97"
+
 jobs:
   validate-update-metadata-keys:
     runs-on: ubuntu-22.04
