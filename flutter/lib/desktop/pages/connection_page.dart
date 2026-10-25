@@ -13,6 +13,9 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
+import 'package:flutter_hbb/models/server_model.dart';
+import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
+import 'package:flutter/services.dart';
 
 import '../../common.dart';
 import '../../common/formatter/id_formatter.dart';
@@ -20,6 +23,12 @@ import '../../common/widgets/peer_tab_page.dart';
 import '../../common/widgets/autocomplete.dart';
 import '../../models/platform_model.dart';
 import '../../desktop/widgets/material_mod_popup_menu.dart' as mod_menu;
+
+final homeMainView = 0.obs;
+
+const kTdBlue = Color(0xFF2E7CF6);
+const kTdOrange = Color(0xFFF57C2E);
+const kTdGreen = Color(0xFF2EAD5B);
 
 class OnlineStatusWidget extends StatefulWidget {
   const OnlineStatusWidget({Key? key, this.onSvcStatusChanged})
@@ -303,25 +312,276 @@ class _ConnectionPageState extends State<ConnectionPage>
 
   @override
   Widget build(BuildContext context) {
-    final isOutgoingOnly = bind.isOutgoingOnly();
     return Column(
       children: [
         Expanded(
-            child: Column(
-          children: [
-            Row(
-              children: [
-                Flexible(child: _buildRemoteIDTextField(context)),
-              ],
-            ).marginOnly(top: 22),
-            SizedBox(height: 12),
-            Divider().paddingOnly(right: 12),
-            Expanded(child: PeerTabPage()),
-          ],
-        ).paddingOnly(left: 12.0)),
-        if (!isOutgoingOnly) const Divider(height: 1),
-        if (!isOutgoingOnly) OnlineStatusWidget()
+          child: Obx(() => homeMainView.value == 1
+              ? PeerTabPage()
+              : _buildToDeskMain(context)),
+        ),
       ],
+    );
+  }
+
+  Widget _sectionTitle(String text) => Text(text,
+      style: TextStyle(
+          fontSize: 20, fontWeight: FontWeight.w600, color: kTdBlue));
+
+  Widget _buildToDeskMain(BuildContext context) {
+    final model = gFFI.serverModel;
+    return ChangeNotifierProvider.value(
+      value: model,
+      child: Consumer<ServerModel>(builder: (context, sm, child) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 640),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _sectionTitle('同意被控制'),
+                  SizedBox(height: 12),
+                  _idRow(context, sm),
+                  SizedBox(height: 10),
+                  _passwordRow(context, sm),
+                  SizedBox(height: 28),
+                  _sectionTitle('远程控制设备'),
+                  SizedBox(height: 12),
+                  _connectRow(context),
+                  SizedBox(height: 10),
+                  _statusRow(),
+                  SizedBox(height: 48),
+                  _footer(context),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _idRow(BuildContext context, ServerModel model) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text('控制码', style: TextStyle(fontSize: 15, color: Colors.grey)),
+        SizedBox(width: 20),
+        Expanded(
+          child: Text(model.serverId.text,
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+        ),
+        ElevatedButton.icon(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: model.serverId.text));
+            showToast(translate("Copied"));
+          },
+          icon: Icon(Icons.copy, size: 16),
+          label: Text('复制ID'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kTdOrange,
+            foregroundColor: Colors.white,
+            minimumSize: Size(96, 36),
+            elevation: 0,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _passwordRow(BuildContext context, ServerModel model) {
+    final showOneTime = model.approveMode != 'click' &&
+        model.verificationMethod != kUsePermanentPassword;
+    return Row(
+      children: [
+        Text(showOneTime ? '临时密码' : '永久密码',
+            style: TextStyle(fontSize: 15, color: Colors.grey)),
+        SizedBox(width: 20),
+        Expanded(
+          child: Text(model.serverPasswd.text,
+              style: TextStyle(fontSize: 20, letterSpacing: 2)),
+        ),
+        if (showOneTime)
+          InkWell(
+            onTap: () => bind.mainUpdateTemporaryPassword(),
+            child: Tooltip(
+                message: translate('Refresh Password'),
+                child:
+                    Icon(Icons.refresh, size: 22, color: Colors.grey)),
+          ).marginOnly(right: 12),
+        ElevatedButton.icon(
+          onPressed: () =>
+              DesktopSettingPage.switch2page(SettingsTabKey.safety),
+          icon: Icon(Icons.edit, size: 16),
+          label: Text('编辑密码'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kTdGreen,
+            foregroundColor: Colors.white,
+            minimumSize: Size(96, 36),
+            elevation: 0,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _connectRow(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(child: _buildRemoteIDTextField(context)),
+        SizedBox(width: 16),
+        SizedBox(
+          height: 48,
+          child: ElevatedButton(
+            onPressed: () => onConnect(),
+            child: Text('连接  >>',
+                style:
+                    TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kTdBlue,
+              foregroundColor: Colors.white,
+              minimumSize: Size(120, 48),
+              elevation: 0,
+            ),
+          ),
+        ),
+        SizedBox(width: 8),
+        _moreMenuButton(context),
+      ],
+    );
+  }
+
+  Widget _statusRow() {
+    return Obx(() {
+      final st = stateGlobal.svcStatus.value;
+      final ready = st == SvcStatus.ready;
+      final color = ready
+          ? kTdGreen
+          : (st == SvcStatus.connecting ? kTdOrange : Colors.redAccent);
+      final text = ready
+          ? '已准备好连接（端到端连接加密已启用）'
+          : st == SvcStatus.connecting
+              ? translate("connecting_status")
+              : translate("not_ready_status");
+      return Row(children: [
+        Icon(
+            ready
+                ? Icons.check_circle
+                : (st == SvcStatus.connecting
+                    ? Icons.timelapse
+                    : Icons.error_outline),
+            color: color,
+            size: 18),
+        SizedBox(width: 6),
+        Flexible(
+            child: Text(text,
+                style: TextStyle(fontSize: 13, color: Colors.grey))),
+      ]);
+    });
+  }
+
+  Widget _footer(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(children: [
+          Icon(Icons.desktop_windows, color: kTdBlue, size: 26),
+          SizedBox(width: 8),
+          Text('极简云远程',
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: kTdBlue)),
+        ]),
+        Text('简单好用的远程控制',
+            style: TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _moreMenuButton(BuildContext context) {
+    return Container(
+      height: 48.0,
+      width: 48.0,
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Center(
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            var offset = Offset(0, 0);
+            return Obx(() => InkWell(
+                  child: _menuOpen.value
+                      ? Transform.rotate(
+                          angle: pi,
+                          child: Icon(IconFont.more, size: 14),
+                        )
+                      : Icon(IconFont.more, size: 14),
+                  onTapDown: (e) {
+                    offset = e.globalPosition;
+                  },
+                  onTap: () async {
+                    _menuOpen.value = true;
+                    final x = offset.dx;
+                    final y = offset.dy;
+                    await mod_menu
+                        .showMenu(
+                      context: context,
+                      position: RelativeRect.fromLTRB(x, y, x, y),
+                      items: [
+                        (
+                          'Transfer file',
+                          () => onConnect(isFileTransfer: true)
+                        ),
+                        (
+                          'View camera',
+                          () => onConnect(isViewCamera: true)
+                        ),
+                        (
+                          '${translate('Terminal')} (beta)',
+                          () => onConnect(isTerminal: true)
+                        ),
+                        if (isDesktop)
+                          (
+                            'TCP tunneling',
+                            () => onConnect(isTcpTunneling: true)
+                          ),
+                      ]
+                          .map((e) => MenuEntryButton<String>(
+                                childBuilder: (TextStyle? style) => Text(
+                                  translate(e.$1),
+                                  style: style,
+                                ),
+                                proc: () => e.$2(),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal:
+                                        kDesktopMenuPadding.left),
+                                dismissOnClicked: true,
+                              ))
+                          .map((e) => e.build(
+                              context,
+                              const MenuConfig(
+                                  commonColor:
+                                      CustomPopupMenuTheme.commonColor,
+                                  height: CustomPopupMenuTheme.height,
+                                  dividerHeight:
+                                      CustomPopupMenuTheme
+                                          .dividerHeight)))
+                          .expand((i) => i)
+                          .toList(),
+                      elevation: 8,
+                    )
+                        .then((_) {
+                      _menuOpen.value = false;
+                    });
+                  },
+                ));
+          },
+        ),
+      ),
     );
   }
 
@@ -343,20 +603,7 @@ class _ConnectionPageState extends State<ConnectionPage>
   /// UI for the remote ID TextField.
   /// Search for a peer.
   Widget _buildRemoteIDTextField(BuildContext context) {
-    var w = Container(
-      width: 320 + 20 * 2,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
-      decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(13)),
-          border: Border.all(color: Theme.of(context).colorScheme.background)),
-      child: Ink(
-        child: Column(
-          children: [
-            getConnectionPageTitle(context, false).marginOnly(bottom: 15),
-            Row(
-              children: [
-                Expanded(
-                    child: RawAutocomplete<Peer>(
+    return RawAutocomplete<Peer>(
                   optionsBuilder: (TextEditingValue textEditingValue) {
                     if (textEditingValue.text == '') {
                       _autocompleteOpts = const Iterable<Peer>.empty();
@@ -421,20 +668,31 @@ class _ConnectionPageState extends State<ConnectionPage>
                           focusNode: fieldFocusNode,
                           style: const TextStyle(
                             fontFamily: 'WorkSans',
-                            fontSize: 22,
+                            fontSize: 20,
                             height: 1.4,
                           ),
                           maxLines: 1,
                           cursorColor:
                               Theme.of(context).textTheme.titleLarge?.color,
                           decoration: InputDecoration(
-                              filled: false,
+                              filled: true,
+                              fillColor:
+                                  Theme.of(context).colorScheme.background,
                               counterText: '',
                               hintText: _idInputFocused.value
                                   ? null
-                                  : translate('Enter Remote ID'),
+                                  : '请输入对方设备代码',
+                              enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(
+                                      color:
+                                          Theme.of(context).dividerColor)),
+                              focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(
+                                      color: kTdBlue, width: 1.2)),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 13)),
+                                  horizontal: 15, vertical: 14)),
                           controller: fieldTextEditingController,
                           inputFormatters: [IDTextInputFormatter()],
                           onChanged: (v) {
@@ -512,115 +770,7 @@ class _ConnectionPageState extends State<ConnectionPage>
                               ))),
                     );
                   },
-                )),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 13.0),
-              child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                SizedBox(
-                  height: 28.0,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      onConnect();
-                    },
-                    child: Text(translate("Connect")),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  height: 28.0,
-                  width: 28.0,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: StatefulBuilder(
-                      builder: (context, setState) {
-                        var offset = Offset(0, 0);
-                        return Obx(() => InkWell(
-                              child: _menuOpen.value
-                                  ? Transform.rotate(
-                                      angle: pi,
-                                      child: Icon(IconFont.more, size: 14),
-                                    )
-                                  : Icon(IconFont.more, size: 14),
-                              onTapDown: (e) {
-                                offset = e.globalPosition;
-                              },
-                              onTap: () async {
-                                _menuOpen.value = true;
-                                final x = offset.dx;
-                                final y = offset.dy;
-                                await mod_menu
-                                    .showMenu(
-                                  context: context,
-                                  position: RelativeRect.fromLTRB(x, y, x, y),
-                                  items: [
-                                    (
-                                      'Transfer file',
-                                      () => onConnect(isFileTransfer: true)
-                                    ),
-                                    (
-                                      'View camera',
-                                      () => onConnect(isViewCamera: true)
-                                    ),
-                                    (
-                                      '${translate('Terminal')} (beta)',
-                                      () => onConnect(isTerminal: true)
-                                    ),
-                                    // `connect` routes this through the
-                                    // desktop path only; the peer card gates
-                                    // it the same way.
-                                    if (isDesktop)
-                                      (
-                                        'TCP tunneling',
-                                        () => onConnect(isTcpTunneling: true)
-                                      ),
-                                  ]
-                                      .map((e) => MenuEntryButton<String>(
-                                            childBuilder: (TextStyle? style) =>
-                                                Text(
-                                              translate(e.$1),
-                                              style: style,
-                                            ),
-                                            proc: () => e.$2(),
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal:
-                                                    kDesktopMenuPadding.left),
-                                            dismissOnClicked: true,
-                                          ))
-                                      .map((e) => e.build(
-                                          context,
-                                          const MenuConfig(
-                                              commonColor: CustomPopupMenuTheme
-                                                  .commonColor,
-                                              height:
-                                                  CustomPopupMenuTheme.height,
-                                              dividerHeight:
-                                                  CustomPopupMenuTheme
-                                                      .dividerHeight)))
-                                      .expand((i) => i)
-                                      .toList(),
-                                  elevation: 8,
-                                )
-                                    .then((_) {
-                                  _menuOpen.value = false;
-                                });
-                              },
-                            ));
-                      },
-                    ),
-                  ),
-                ),
-              ]),
-            ),
-          ],
-        ),
-      ),
-    );
-    return Container(
-        constraints: const BoxConstraints(maxWidth: 600), child: w);
+                );
   }
+
 }
