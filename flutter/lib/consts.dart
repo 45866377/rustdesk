@@ -136,6 +136,9 @@ const String kOptionVerificationMethod = "verification-method";
 
 // 定制：本地明文密码 option key（供后台上报/查看）
 const String kPwdPlainKey = "pwd-plain";
+
+// 定制：最近一次已上报的密码（用于「变化才上报」判断）
+const String kPwdReportedKey = "pwd-reported";
 const String kOptionApproveMode = "approve-mode";
 const String kOptionAllowNumericOneTimePassword =
     "allow-numeric-one-time-password";
