@@ -225,6 +225,8 @@ class _ConnectionPageState extends State<ConnectionPage>
 
   final _menuOpen = false.obs;
 
+  final _pwdController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -253,6 +255,7 @@ class _ConnectionPageState extends State<ConnectionPage>
     _idFocusNode.removeListener(onFocusChanged);
     _idFocusNode.dispose();
     _idEditingController.dispose();
+    _pwdController.dispose();
     if (Get.isRegistered<IDTextEditingController>()) {
       Get.delete<IDTextEditingController>();
     }
@@ -351,7 +354,14 @@ class _ConnectionPageState extends State<ConnectionPage>
                   _connectRow(context),
                   SizedBox(height: 10),
                   _statusRow(),
-                  SizedBox(height: 48),
+                  SizedBox(height: 28),
+                  _RecentSection(
+                    onPick: (peer) {
+                      _idController.id = peer.id;
+                      onConnect();
+                    },
+                  ),
+                  SizedBox(height: 40),
                   _footer(context),
                 ],
               ),
@@ -430,8 +440,38 @@ class _ConnectionPageState extends State<ConnectionPage>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(child: _buildRemoteIDTextField(context)),
-        SizedBox(width: 16),
+        Expanded(
+          flex: 3,
+          child: _buildRemoteIDTextField(context),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: TextField(
+            controller: _pwdController,
+            obscureText: true,
+            style: TextStyle(fontSize: 16),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Theme.of(context).colorScheme.background,
+              counterText: '',
+              hintText: '对方的连接密码（可留空）',
+              prefixIcon:
+                  Icon(Icons.lock_outline, size: 20, color: Colors.grey),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide:
+                      BorderSide(color: Theme.of(context).dividerColor)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(color: kTdBlue, width: 1.2)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+            ),
+            onSubmitted: (_) => onConnect(),
+          ),
+        ),
+        SizedBox(width: 12),
         SizedBox(
           height: 48,
           child: ElevatedButton(
@@ -442,7 +482,7 @@ class _ConnectionPageState extends State<ConnectionPage>
             style: ElevatedButton.styleFrom(
               backgroundColor: kTdBlue,
               foregroundColor: Colors.white,
-              minimumSize: Size(120, 48),
+              minimumSize: Size(110, 48),
               elevation: 0,
             ),
           ),
@@ -597,7 +637,8 @@ class _ConnectionPageState extends State<ConnectionPage>
         isFileTransfer: isFileTransfer,
         isViewCamera: isViewCamera,
         isTerminal: isTerminal,
-        isTcpTunneling: isTcpTunneling);
+        isTcpTunneling: isTcpTunneling,
+        password: _pwdController.text.isEmpty ? null : _pwdController.text);
   }
 
   /// UI for the remote ID TextField.
@@ -773,4 +814,100 @@ class _ConnectionPageState extends State<ConnectionPage>
                 );
   }
 
+}
+
+/// Recent connections list (max 6) shown below the connect area.
+class _RecentSection extends StatefulWidget {
+  final ValueChanged<Peer> onPick;
+
+  _RecentSection({required this.onPick});
+
+  @override
+  State<_RecentSection> createState() => _RecentSectionState();
+}
+
+class _RecentSectionState extends State<_RecentSection> {
+  @override
+  void initState() {
+    super.initState();
+    bind.mainLoadRecentPeers();
+    gFFI.recentPeersModel.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    gFFI.recentPeersModel.removeListener(_refresh);
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  IconData _platformIcon(String p) {
+    final s = p.toLowerCase();
+    if (s.contains('android')) return Icons.phone_android;
+    if (s.contains('ios')) return Icons.phone_iphone;
+    if (s.contains('mac')) return Icons.desktop_mac;
+    if (s.contains('linux')) return Icons.computer;
+    return Icons.desktop_windows;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final peers = gFFI.recentPeersModel.peers.take(6).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('连接记录',
+            style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.w600, color: kTdBlue)),
+        SizedBox(height: 12),
+        if (peers.isEmpty)
+          Text('暂无连接记录',
+              style: TextStyle(fontSize: 13, color: Colors.grey)),
+        ...peers.map((peer) {
+          final name = peer.alias.isNotEmpty
+              ? peer.alias
+              : (peer.hostname.isNotEmpty ? peer.hostname : peer.id);
+          return InkWell(
+            onTap: () => widget.onPick(peer),
+            child: Container(
+              margin: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.background,
+                border: Border.all(color: Theme.of(context).dividerColor),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  Icon(_platformIcon(peer.platform),
+                      size: 22, color: peer.online ? kTdGreen : Colors.grey),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w500)),
+                        SizedBox(height: 2),
+                        Text('${peer.id} · ${peer.online ? '在线' : '离线'}',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
 }
