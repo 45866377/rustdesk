@@ -383,18 +383,45 @@ class _ConnectionPageState extends State<ConnectionPage>
           child: Text(model.serverId.text,
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
         ),
-        ElevatedButton.icon(
-          onPressed: () {
-            Clipboard.setData(ClipboardData(text: model.serverId.text));
-            showToast(translate("Copied"));
+        PopupMenuButton<String>(
+          tooltip: '复制选项',
+          offset: const Offset(0, 42),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          onSelected: (v) {
+            final idText = model.serverId.text;
+            if (v == 'id') {
+              Clipboard.setData(ClipboardData(text: idText));
+              showToast(translate("Copied"));
+            } else if (v == 'idpwd') {
+              final pwd = model.serverPasswd.text;
+              Clipboard.setData(ClipboardData(
+                  text: '我的识别码: $idText\n'
+                      '我的验证码: $pwd\n'
+                      '使用极简云远程即可对我发起远程协助\n'
+                      '极简云远程下载地址: https://xn--9kqx5fsxuf5v.top/'));
+              showToast('已复制识别码和密码');
+            }
           },
-          icon: Icon(Icons.copy, size: 16),
-          label: Text('复制ID'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kTdOrange,
-            foregroundColor: Colors.white,
-            minimumSize: Size(96, 36),
-            elevation: 0,
+          itemBuilder: (_) => [
+            PopupMenuItem(value: 'id', height: 40, child: Text('复制识别码')),
+            PopupMenuItem(
+                value: 'idpwd', height: 40, child: Text('复制识别码+密码')),
+          ],
+          child: Container(
+            height: 36,
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: kTdOrange,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.copy, size: 16, color: Colors.white),
+              SizedBox(width: 6),
+              Text('复制',
+                  style: TextStyle(color: Colors.white, fontSize: 14)),
+              Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+            ]),
           ),
         ),
       ],
@@ -519,8 +546,49 @@ class _ConnectionPageState extends State<ConnectionPage>
         Flexible(
             child: Text(text,
                 style: TextStyle(fontSize: 13, color: Colors.grey))),
+        Spacer(),
+        InkWell(
+          onTap: _parseClipboardAndConnect,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              border: Border.all(color: kTdBlue),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.content_paste_search, size: 16, color: kTdBlue),
+              SizedBox(width: 5),
+              Text('识别剪贴板并连接',
+                  style: TextStyle(fontSize: 13, color: kTdBlue)),
+            ]),
+          ),
+        ),
       ]);
     });
+  }
+
+  /// 定制：识别剪贴板中的「识别码/验证码」文本并一键连接
+  Future<void> _parseClipboardAndConnect() async {
+    final data = await Clipboard.getData('text/plain');
+    final text = data?.text ?? '';
+    if (text.trim().isEmpty) {
+      showToast('剪贴板为空');
+      return;
+    }
+    final idMatch =
+        RegExp(r'识别码[:：\s]*(\d[\d\s]{7,}\d)').firstMatch(text);
+    final pwdMatch = RegExp(r'验证码[:：]\s*([^\s]+)').firstMatch(text);
+    if (idMatch == null) {
+      showToast('未识别到控制码（需要形如“我的识别码: 123 456 789”）');
+      return;
+    }
+    final id = idMatch.group(1)!.replaceAll(RegExp(r'\s'), '');
+    _idController.id = id;
+    if (pwdMatch != null) {
+      _pwdController.text = pwdMatch.group(1)!;
+    }
+    showToast('已识别控制码 $id，正在连接...');
+    onConnect();
   }
 
   Widget _footer(BuildContext context) {
