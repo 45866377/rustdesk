@@ -409,6 +409,25 @@ jobs:
           name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
           path: rustdesk
 
+      # 定制：CI 内用 Inno Setup 打包单文件安装版 exe（仅 x86_64）
+      - name: Package single-file installer (JmjyRemote)
+        if: env.UPLOAD_ARTIFACT == 'true' && matrix.job.arch == 'x86_64'
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe" }
+          & $iscc packaging/jmjy.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem packaging-out
+
+      - name: Upload single-file installer artifact
+        if: env.UPLOAD_ARTIFACT == 'true' && matrix.job.arch == 'x86_64'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: JmjyRemote-singlefile-x86_64
+          path: packaging-out/JmjyRemote-1.5.1-x86_64.exe
+
       - name: Sign rustdesk files
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
         shell: bash
