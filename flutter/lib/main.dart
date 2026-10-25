@@ -170,6 +170,10 @@ void runMainApp(bool startService) async {
     windowManager.setTitle(getWindowName());
     // Do not use `windowManager.setResizable()` here.
     setResizable(!bind.isIncomingOnly());
+    // 定制：主窗口固定 800x600、不允许最大化（须在 setResizable 之后，否则样式被覆盖回）
+    await windowManager.setSize(const Size(800, 600));
+    await windowManager.setResizable(false);
+    await windowManager.setMaximizable(false);
   });
 }
 
