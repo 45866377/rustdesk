@@ -155,7 +155,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             ),
             Text('  |  ', style: TextStyle(color: Colors.grey)),
             InkWell(
-              onTap: _openSiteLogin,
+              onTap: _openSiteReg,
               child: Text('注册',
                   style: TextStyle(color: kTdBlue, fontSize: 14)),
             ),
@@ -187,7 +187,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   void _openSiteLogin() async {
-    final url = Uri.parse('https://xn--9kqx5fsxuf5v.top/user/login.php');
+    final url = Uri.parse('https://xn--9kqx5fsxuf5v.top/remote/');
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  void _openSiteReg() async {
+    final url = Uri.parse('https://xn--9kqx5fsxuf5v.top/remote/');
     try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (_) {}
