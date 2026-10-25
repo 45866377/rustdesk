@@ -9,6 +9,7 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
 import 'package:flutter_hbb/consts.dart';
+import 'package:flutter_hbb/common/widgets/peer_tab_page.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
@@ -76,6 +77,116 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildLeftPane(BuildContext context) {
+    if (bind.isIncomingOnly()) {
+      return _buildLegacyLeftPane(context);
+    }
+    final textColor = Theme.of(context).textTheme.titleLarge?.color;
+    Widget menuItem(int idx, IconData icon, String label) => Obx(() {
+          final selected = homeMainView.value == idx;
+          return InkWell(
+            onTap: () {
+              if (idx == 2) {
+                if (DesktopSettingPage.tabKeys.isNotEmpty) {
+                  DesktopSettingPage.switch2page(
+                      DesktopSettingPage.tabKeys[0]);
+                }
+              } else {
+                homeMainView.value = idx;
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              margin: EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: selected
+                    ? kTdBlue.withOpacity(0.10)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(children: [
+                Icon(icon,
+                    size: 20, color: selected ? kTdBlue : Colors.grey),
+                SizedBox(width: 10),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 15,
+                        color: selected ? kTdBlue : textColor)),
+              ]),
+            ),
+          );
+        });
+    return Column(
+      children: [
+        SizedBox(height: 18),
+        Padding(
+          padding: EdgeInsets.only(left: 14),
+          child: Row(children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                  color: kTdBlue, borderRadius: BorderRadius.circular(6)),
+              child:
+                  Icon(Icons.desktop_windows, color: Colors.white, size: 20),
+            ),
+            SizedBox(width: 8),
+            Text('极简云远程',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ]),
+        ),
+        SizedBox(height: 18),
+        Padding(
+          padding: EdgeInsets.only(left: 14),
+          child: Row(children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: kTdBlue.withOpacity(0.15),
+              child: Icon(Icons.person, color: kTdBlue, size: 22),
+            ),
+            SizedBox(width: 10),
+            InkWell(
+              onTap: _openSiteLogin,
+              child: Text('登录',
+                  style: TextStyle(color: kTdBlue, fontSize: 14)),
+            ),
+            Text('  |  ', style: TextStyle(color: Colors.grey)),
+            InkWell(
+              onTap: _openSiteLogin,
+              child: Text('注册',
+                  style: TextStyle(color: kTdBlue, fontSize: 14)),
+            ),
+          ]),
+        ),
+        SizedBox(height: 18),
+        menuItem(0, Icons.desktop_mac, '远程控制'),
+        menuItem(1, Icons.devices, '设备列表'),
+        menuItem(2, Icons.settings, '高级设置'),
+        Expanded(child: Container()),
+        Padding(
+          padding: EdgeInsets.only(left: 16, bottom: 12),
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('内部定制版本',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                SizedBox(height: 4),
+                Text(bind.mainGetVersion(),
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ]),
+        ),
+      ],
+    );
+  }
+
+  void _openSiteLogin() async {
+    final url = Uri.parse('https://xn--9kqx5fsxuf5v.top/user/login.php');
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  Widget _buildLegacyLeftPane(BuildContext context) {
     final isIncomingOnly = bind.isIncomingOnly();
     final isOutgoingOnly = bind.isOutgoingOnly();
     final children = <Widget>[
@@ -181,7 +292,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   buildRightPane(BuildContext context) {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
-      child: ConnectionPage(),
+      child: Obx(() => homeMainView.value == 1
+          ? PeerTabPage()
+          : ConnectionPage()),
     );
   }
 
